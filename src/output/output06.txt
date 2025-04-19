@@ -1,0 +1,13 @@
+(ERROR_INVALID_NUMBER, 123var)
+(ident               , _valid_var)
+(number              , 3.14e2)
+(number              , 123.4)
+(ERROR_ILLEGAL_CHAR  , ä   )
+(ERROR_ILLEGAL_CHAR  , ½   )
+(ERROR_ILLEGAL_CHAR  ,     )
+(ERROR_ILLEGAL_CHAR  , å   )
+(ERROR_ILLEGAL_CHAR  , ¥   )
+(ERROR_ILLEGAL_CHAR  , ½   )
+(ident               , ab01ab)
+(ERROR_UNCLOSED_STR  , "unclosed_str
+@test)

@@ -1,0 +1,8 @@
+123var
+_valid_var
+3.14e2
+123.4
+你好
+ab01ab
+"unclosed_str
+@test

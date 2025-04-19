@@ -1,0 +1,21 @@
+var
+
+    x,y,z;
+
+begin
+
+    x := 2x;
+
+    y := -5;
+
+    read(z);
+
+    if z > 3 then
+
+        write(x)
+
+    else
+
+        write(y);
+
+end.
