@@ -1,5 +1,9 @@
 #include "Lexer.h"
 
+#include <algorithm>
+
+#include "Error.h"
+
 Lexer::Lexer()
 {
     initSymbolTables();

@@ -5,28 +5,24 @@
 #include <vector>
 #include <map>
 #include <utility>
-#include <cctype>
-#include <algorithm>
 
-#include "Error.h"
-
-// �ʷ��������࣬���ڽ������Դ�����ַ���ת��Ϊһϵ�еĴʷ���Ԫ�����ƣ�
+// 词法分析器类，用于将输入的源代码字符串转换为一系列的词法单元（令牌）
 class Lexer
 {
 public:
     Lexer();
-    // ���ܣ����дʷ������������������Դ�����ַ��������أ��ʷ���Ԫ����
+    // 功能：进行词法分析；参数：输入的源代码字符串；返回：词法单元向量
     std::vector<std::pair<std::string, std::string>> analyze(const std::string &input);
 
 private:
-    std::map<std::string, std::string> keywords;  // �ؼ��ֱ�����Ϊ�ؼ��֣�ֵΪ��Ӧ�Ĵʷ���Ԫ����
-    std::map<std::string, std::string> operators; // ������������Ϊ��������ֵΪ��Ӧ�Ĵʷ���Ԫ����
-    std::map<char, std::string> delimiters;       // �ָ���������Ϊ�ָ����ַ���ֵΪ��Ӧ�Ĵʷ���Ԫ����
+    std::map<std::string, std::string> keywords;  // 关键字表，键为关键字，值为对应的词法单元类型
+    std::map<std::string, std::string> operators; // 操作符表，键为操作符，值为对应的词法单元类型
+    std::map<char, std::string> delimiters;       // 分隔符表，键为分隔符字符，值为对应的词法单元类型
 
-    std::vector<std::pair<std::string, std::string>> tokens; // �洢�ʷ��������������
-    std::string source;                                      // �����Դ�����ַ���
-    size_t pos;                                              // ��ǰ�������ַ�λ��
-    size_t length;                                           // Դ�����ַ����ĳ���
+    std::vector<std::pair<std::string, std::string>> tokens; // 存储词法分析结果的向量
+    std::string source;                                      // 输入的源代码字符串
+    size_t pos;                                              // 当前处理的字符位置
+    size_t length;                                           // 源代码字符串的长度
 
     bool escaped;
     bool closed;
@@ -37,28 +33,28 @@ private:
     void initSymbolTables();
     void skipWhitespace();
 
-    // ����Ƿ��Ѿ������������ַ���
+    // 检查是否已经处理完输入字符串
     bool isAtEnd() const;
 
-    // �鿴��ǰλ�õ��ַ��������ƶ�λ��
+    // 查看当前位置的字符，但不移动位置
     char peek() const;
 
-    // ��ȡ��ǰλ�õ��ַ�������λ������ƶ�һλ
+    // 获取当前位置的字符，并将位置向后移动一位
     char advance();
 
-    // ��һ���ʷ���Ԫ�����ͣ�ֵ�����ӵ����������
+    // 将一个词法单元（类型，值）添加到结果向量中
     void addToken(const std::string &type, const std::string &value);
 
-    // �����ַ���������
+    // 处理字符串字面量
     void handleString();
 
-    // ������ʶ���͹ؼ���
+    // 处理标识符和关键字
     void handleIdentifier();
 
-    // ��������������
+    // 处理数字字面量
     void handleNumber();
 
-    // �����������ͷָ���
+    // 处理操作符和分隔符
     void handleOperatorOrDelimiter();
 };
 

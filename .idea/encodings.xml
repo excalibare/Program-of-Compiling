@@ -3,6 +3,7 @@
   <component name="Encoding">
     <file url="file://$PROJECT_DIR$/include/Error.h" charset="GBK" />
     <file url="file://$PROJECT_DIR$/include/Parser.h" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/lib/Lexer.cpp" charset="GBK" />
     <file url="file://$PROJECT_DIR$/lib/Parser.cpp" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/output/output06.txt" charset="GBK" />
   </component>
