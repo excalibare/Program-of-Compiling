@@ -5,16 +5,24 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include <iostream>
+using namespace std;
+bool debug = false;
+
 // 提取以 := 开始后的表达式 token
-std::vector<std::vector<std::pair<std::string, std::string>>> extractExpressions(const std::vector<std::pair<std::string, std::string>> &tokens)
+vector<pair<string, vector<pair<string, string>>>> extractExpressions(const std::vector<std::pair<std::string, std::string>> &tokens)
 {
-    std::vector<std::vector<std::pair<std::string, std::string>>> expressions;
+    vector<pair<string, vector<pair<string, string>>>> expressions;
+
     for (size_t i = 0; i < tokens.size(); ++i)
     {
+        vector<pair<string, string>> current;
+
         if (tokens[i].first == "becomes")
         { // :=
             std::vector<std::pair<std::string, std::string>> expr;
             bool hasError = false;
+            string original_expr;
             ++i;
             while (i < tokens.size() && tokens[i].first != "semicolon")
             {
@@ -29,14 +37,17 @@ std::vector<std::vector<std::pair<std::string, std::string>>> extractExpressions
 
                 expr.push_back(tokens[i]);
                 // std::cout << tokens[i].first << " " << tokens[i].second << std::endl;
+                original_expr += tokens[i].second + " ";
                 ++i;
             }
             if (!expr.empty() && !hasError) {
-                expressions.push_back(expr);
+                expressions.push_back({original_expr,expr});
             } else {
-                std::cerr << "跳过包含词法错误的表达式：" << std::endl;
-                for (const auto& t : expr) {
-                    std::cerr << "  " << t.first << " " << t.second << std::endl;
+                if (debug) {
+                    std::cerr << "跳过包含词法错误的表达式：" << std::endl;
+                    for (const auto& t : expr) {
+                        std::cerr << "  " << t.first << " " << t.second << std::endl;
+                    }
                 }
             }
         }

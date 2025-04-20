@@ -11,9 +11,9 @@ void Parser::analyze() {
             // Error::printError(Error::ErrorType::EXTRA_TOKEN);
             throw std::runtime_error("存在多余符号，表达式后仍有内容: '" + peek().second + "'");
         }
-        std::cerr << "语法正确!" << std::endl;
+        std::cout << "语法正确!" << std::endl;
     } catch (const std::exception& e) {
-        std::cerr << "语法错误: " << e.what() << std::endl;
+        std::cout << "语法错误: " << e.what() << std::endl;
     }
 }
 

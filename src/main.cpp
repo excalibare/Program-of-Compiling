@@ -30,8 +30,6 @@ int main(){
     if (!file.is_open()) {
         cout << "Could not open file" << endl;
         return 0;
-    }else {
-        cout << "File opened successfully" << endl;
     }
 
     string input((istreambuf_iterator<char>(file)),
@@ -50,11 +48,15 @@ int main(){
 
     // 从结果中提取所有表达式并进行词法分析
     auto expressions = extractExpressions(tokens);
-    for (const auto &expr : expressions)
+    for (const auto &[rawText, exprTokens] : expressions)
     {
-        Parser parser(expr);
-        parser.debug_on();
+
+        Parser parser(exprTokens);
+        // parser.debug_on();
+        parser.debug_off();
+        std::cout << "\n正在分析表达式: " << rawText << endl;
         parser.analyze();
+
     }
 }
 
