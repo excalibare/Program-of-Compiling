@@ -3,10 +3,13 @@
 #include <string>
 #include <vector>
 #include <iomanip>
+// 强制使用UTF-8
+#include <windows.h>
 
 #include "Lexer.h"
 #include "Parser.h"
 #include "Utils.h"
+
 
 #define endl "\n"
 
@@ -15,6 +18,14 @@ using namespace std;
 
 
 int main(){
+    // 强制使用UTF-8
+    // 切输出/输入都用 UTF‑8
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+    // 如有需要，也让 C++ IO 流用本地环境
+    std::ios::sync_with_stdio(true);
+    std::locale::global(std::locale(""));
+
     ifstream file("../src/input/parse.txt");
     if (!file.is_open()) {
         cout << "Could not open file" << endl;
