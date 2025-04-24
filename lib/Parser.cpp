@@ -1,21 +1,87 @@
 #include "Parser.h"
 #include "Error.h"
 
-Parser::Parser(const std::vector<std::pair<std::string, std::string>>& tokens)
-    : tokens(tokens), current(0) {}
+Parser::Parser(const std::vector<std::pair<std::string, std::string> > &tokens)
+    : tokens(tokens), current(0) {
+}
 
 void Parser::analyze() {
     try {
-        expression();
+        statement();
         if (!isAtEnd()) {
-            // Error::printError(Error::ErrorType::EXTRA_TOKEN);
-            throw std::runtime_error("存在多余符号，表达式后仍有内容: '" + peek().second + "'");
+            throw std::runtime_error("存在多余符号，语句后仍有内容: '" + peek().second + "'");
         }
-        std::cout << "语法正确!" << std::endl;
-    } catch (const std::exception& e) {
-        std::cout << "语法错误: " << e.what() << std::endl;
+        std::cerr << "语法正确!" << std::endl;
+    } catch (const std::exception &e) {
+        std::cerr << "语法错误: " << e.what() << std::endl;
     }
 }
+
+
+void Parser::statement() {
+    auto token = peek();
+
+    if (token.first == "ifsym") {
+        log("匹配 if 语句");
+        advance(); // consume 'if'
+        condition(); // 解析条件
+        match("thensym"); // consume 'then'
+        statement(); // then 后接一个语句
+        if (peek().first == "elsesym") {
+            log("匹配 else 分支");
+            advance(); // consume 'else'
+            statement(); // else 后接一个语句
+        }
+    } else if (token.first == "whilesym") {
+        log("匹配 while 语句");
+        advance(); // consume 'while'
+        condition();
+        match("dosym"); // consume 'do'
+        statement();
+    } else if (token.first == "beginsym") {
+        log("匹配 begin ... end 语句块");
+        advance(); // consume 'begin'
+        statement(); // 解析第一条语句
+
+        while (peek().first == "semicolon") {
+            advance(); // consume ';'
+            statement(); // 后续语句
+        }
+
+        if (peek().first == "endsym") {
+            advance(); // consume 'end'
+        } else {
+            throw std::runtime_error("缺少 'end'，当前位置: " + peek().second);
+        }
+    } else if (token.first == "ident" && peek(1).first == "becomes") { // 处理赋值语句
+        log("匹配赋值语句");
+        advance(); // consume 标识符
+        advance(); // consume :=
+        expression(); // 解析右侧表达式
+    } else {
+        log("匹配表达式作为语句 (临时占位)");
+        expression(); // 其他情况作为表达式处理
+    }
+}
+
+void Parser::condition() {
+    if (peek().first == "oddsym") {
+        log("匹配 odd 条件");
+        advance(); // consume 'odd'
+        expression(); // odd <表达式>
+    } else {
+        expression(); // 左表达式
+        auto relop = peek();
+        if (isRelOp(relop.first)) {
+            log("匹配关系运算符: " + relop.second);
+            advance(); // consume relop
+            expression(); // 右表达式
+        } else {
+            throw std::runtime_error("缺少关系运算符，当前位置: '" + relop.second + "'");
+        }
+    }
+}
+
 
 void Parser::expression() {
     auto token = peek();
@@ -54,7 +120,7 @@ void Parser::factor() {
     } else if (token.first == "lparen") {
         log("匹配左括号: " + token.second);
         advance();
-        expression();   // 进入表达式递归
+        expression(); // 进入表达式递归
         if (peek().first == "rparen") {
             log("匹配右括号: " + peek().second);
             advance();
@@ -68,7 +134,7 @@ void Parser::factor() {
     }
 }
 
-void Parser::match(const std::string& expectedType) {
+void Parser::match(const std::string &expectedType) {
     if (peek().first == expectedType) {
         advance();
     } else {
@@ -82,13 +148,18 @@ void Parser::match(const std::string& expectedType) {
 }
 
 // 判断加法运算符
-bool Parser::isAddOp(const std::string& type) {
+bool Parser::isAddOp(const std::string &type) {
     return type == "plus" || type == "minus";
 }
 
 // 判断乘法运算符
-bool Parser::isMulOp(const std::string& type) {
+bool Parser::isMulOp(const std::string &type) {
     return type == "times" || type == "slash";
+}
+
+bool Parser::isRelOp(const std::string &type) {
+    return type == "eql" || type == "neq" || type == "lss" ||
+           type == "leq" || type == "gtr" || type == "geq";
 }
 
 std::pair<std::string, std::string> Parser::peek(int offset) {
@@ -114,7 +185,7 @@ void Parser::debug_off() {
     debug = false;
 }
 
-void Parser::log(const std::string& msg) {
+void Parser::log(const std::string &msg) {
     if (debug) {
         std::cerr << "[Debug] " << msg << std::endl;
     }

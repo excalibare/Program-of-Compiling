@@ -15,8 +15,6 @@
 
 using namespace std;
 
-
-
 int main(){
     // 强制使用UTF-8
     // 切输出/输入都用 UTF‑8
@@ -26,17 +24,37 @@ int main(){
     std::ios::sync_with_stdio(true);
     std::locale::global(std::locale(""));
 
-    ifstream file("../src/input/parse.txt");
-    if (!file.is_open()) {
-        cout << "Could not open file" << endl;
-        return 0;
+
+    // 从文件读取输入
+    vector<string> inputFiles = {
+        "../src/input/case01.txt",
+        "../src/input/case02.txt",
+        "../src/input/case03.txt",
+        "../src/input/case04.txt",
+        "../src/input/case05.txt",
+        "../src/input/case06.txt",
+    "../src/input/parse.txt",};
+
+
+    for (size_t i = 0; i < inputFiles.size(); i++) {
+        ifstream file(inputFiles[i]);
+        if (!file.is_open()) {
+            cout << "Could not open file" << endl;
+            return 0;
+        }else {
+            cerr << "现分析第" << i+1 << "个文件: " << inputFiles[i] << endl;
+        }
+
+        string input((istreambuf_iterator<char>(file)),
+                     istreambuf_iterator<char>());
+        Lexer lexer;
+        // 执行词法分析
+        auto tokens = lexer.analyze(input);
+        Parser parser(tokens);
+        parser.debug_on(); // 开启调试信息
+        parser.analyze();  // 分析整个 token 流（支持 if, while, begin 等）
     }
 
-    string input((istreambuf_iterator<char>(file)),
-                 istreambuf_iterator<char>());
-    Lexer lexer;
-    // 执行词法分析
-    auto tokens = lexer.analyze(input);
 
     // vector<vector<pair<string,string>>> expressions = {
     //     {{"lparen","("},{"number","3"},{"plus","+"},{"number","4"}},
@@ -47,17 +65,17 @@ int main(){
     // };
 
     // 从结果中提取所有表达式并进行词法分析
-    auto expressions = extractExpressions(tokens);
-    for (const auto &[rawText, exprTokens] : expressions)
-    {
-
-        Parser parser(exprTokens);
-        // parser.debug_on();
-        parser.debug_off();
-        std::cout << "\n正在分析表达式: " << rawText << endl;
-        parser.analyze();
-
-    }
+    // auto expressions = extractExpressions(tokens);
+    // for (const auto &[rawText, exprTokens] : expressions)
+    // {
+    //
+    //     Parser parser(exprTokens);
+    //     parser.debug_on();
+    //     // parser.debug_off();
+    //     std::cout << "\n正在分析表达式: " << rawText << endl;
+    //     parser.analyze();
+    //
+    // }
 }
 
 // int main()

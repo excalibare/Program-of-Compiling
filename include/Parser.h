@@ -26,10 +26,13 @@ private:
     void expression();      // <表达式>
     void term();            // <项>
     void factor();          // <因子>
+    void statement();       // <语句>
+    void condition();       // <判断条件>
     void match(const std::string& expectedType); // 匹配当前token类型
 
     bool isAddOp(const std::string& type);
     bool isMulOp(const std::string& type);
+    bool isRelOp(const std::string& type); // 是否为判断语句
 
     std::pair<std::string, std::string> peek(int offset = 0);
     void advance();

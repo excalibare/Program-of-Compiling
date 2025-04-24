@@ -7,7 +7,7 @@
 
 #include <iostream>
 using namespace std;
-bool debug = false;
+bool debug = true;
 
 // 提取以 := 开始后的表达式 token
 vector<pair<string, vector<pair<string, string>>>> extractExpressions(const std::vector<std::pair<std::string, std::string>> &tokens)
