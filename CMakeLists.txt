@@ -11,5 +11,4 @@ aux_source_directory(lib LIB)
 # 添加头文件路径
 include_directories(include)
 
-add_executable(main ${LIB} ${SRC}
-        include/Quadruple.h)
+add_executable(main ${LIB} ${SRC})
