@@ -5,6 +5,13 @@ Parser::Parser(const std::vector<std::pair<std::string, std::string> > &tokens)
     : tokens(tokens), current(0) {
 }
 
+void Parser::printQuads() const {
+    for (size_t i = 0; i < quads.size(); ++i) {
+        const auto &q = quads[i];
+        std::cerr << i << ": ( " << q.op << ", " << q.arg1 << ", " << q.arg2 << ", " << q.result << " )" << std::endl;
+    }
+}
+
 void Parser::analyze() {
     try {
         statement();
@@ -12,6 +19,7 @@ void Parser::analyze() {
             throw std::runtime_error("存在多余符号，语句后仍有内容: '" + peek().second + "'");
         }
         std::cerr << "语法正确!" << std::endl;
+        printQuads();
     } catch (const std::exception &e) {
         std::cerr << "语法错误: " << e.what() << std::endl;
     }
@@ -59,14 +67,13 @@ void Parser::statement() {
         } else {
             throw std::runtime_error("缺少 'end'，当前位置: " + peek().second);
         }
-    } else if (token.first == "ident" && peek(1).first == "becomes") { // 处理赋值语句
+    } else if (token.first == "ident" && peek(1).first == "becomes") {
         log("匹配赋值语句");
-        advance(); // consume 标识符
+        std::string varName = token.second;
+        advance(); // consume ident
         advance(); // consume :=
-        expression(); // 解析右侧表达式
-    } else {
-        log("匹配表达式作为语句 (临时占位)");
-        expression(); // 其他情况作为表达式处理
+        std::string exprResult = expression(); // 得到右边的计算结果
+        quads.push_back({"=", exprResult, "", varName});
     }
 }
 
@@ -89,53 +96,110 @@ void Parser::condition() {
 }
 
 
-void Parser::expression() {
-    auto token = peek();
-    // [+|-]
-    if (isAddOp(token.first)) {
-        log("匹配前导加法运算符: " + token.second);
-        advance();
-    }
-    // <项>
-    term();
-    // {<加法运算符> <项>}
+// void Parser::expression() {
+//     auto token = peek();
+//     // [+|-]
+//     if (isAddOp(token.first)) {
+//         log("匹配前导加法运算符: " + token.second);
+//         advance();
+//     }
+//     // <项>
+//     term();
+//     // {<加法运算符> <项>}
+//     while (!isAtEnd() && isAddOp(peek().first)) {
+//         log("匹配加法运算符: " + peek().second);
+//         advance();
+//         term();
+//     }
+// }
+
+
+std::string Parser::expression() {
+    std::string left = term();
+
     while (!isAtEnd() && isAddOp(peek().first)) {
-        log("匹配加法运算符: " + peek().second);
+        std::string op = peek().second;
+        log("匹配加法运算符: " + op);
         advance();
-        term();
+        std::string right = term();
+        std::string temp = newTemp();
+        quads.push_back({op, left, right, temp});
+        left = temp;
     }
+
+    return left;
 }
 
-void Parser::term() {
-    // <因子>
-    factor();
-    // {<乘法运算符> <因子>}
+// void Parser::term() {
+//     // <因子>
+//     factor();
+//     // {<乘法运算符> <因子>}
+//     while (!isAtEnd() && isMulOp(peek().first)) {
+//         log("匹配乘法运算符: " + peek().second);
+//         advance();
+//         factor();
+//     }
+// }
+
+std::string Parser::term() {
+    string left = factor();
+
     while (!isAtEnd() && isMulOp(peek().first)) {
-        log("匹配乘法运算符: " + peek().second);
-        advance();
-        factor();
+        std::string op = peek().second; // 获取运算符（* 或 /）
+        log("匹配乘法运算符: " + op);
+        advance(); // 消费运算符
+        std::string right = factor(); // 获取下一个因子
+        std::string temp = newTemp(); // 新建临时变量
+        quads.push_back({op, left, right, temp}); // 生成四元式
+        left = temp; // 更新 left 为临时变量，为下一轮可能的乘除做准备
     }
+
+    return left; // 返回最终结果（变量名或临时变量）
 }
 
-void Parser::factor() {
-    // <标识符>|<无符号整数>| ‘(’<表达式>‘)’
+
+// void Parser::factor() {
+//     // <标识符>|<无符号整数>| ‘(’<表达式>‘)’
+//     auto token = peek();
+//     if (token.first == "ident" || token.first == "number") {
+//         log("匹配因子: " + token.second);
+//         advance();
+//     } else if (token.first == "lparen") {
+//         log("匹配左括号: " + token.second);
+//         advance();
+//         expression(); // 进入表达式递归
+//         if (peek().first == "rparen") {
+//             log("匹配右括号: " + peek().second);
+//             advance();
+//         } else {
+//             // Error::printError(Error::ErrorType::MISSING_RPAREN,"当前位置: " + peek(-1).second);
+//             throw std::runtime_error("缺少右括号，当前位置: " + peek(-1).second);
+//         }
+//     } else {
+//         // Error::printError(Error::ErrorType::INVALID_FACTOR,"应为标识符、数字或括号表达式，但实际为: '" + token.second + "'");
+//         throw std::runtime_error("因子格式错误，应为标识符、数字或括号表达式，但实际为: '" + token.second + "'");
+//     }
+// }
+
+
+std::string Parser::factor() {
     auto token = peek();
     if (token.first == "ident" || token.first == "number") {
         log("匹配因子: " + token.second);
         advance();
+        return token.second; // 返回标识符名或数字
     } else if (token.first == "lparen") {
         log("匹配左括号: " + token.second);
         advance();
-        expression(); // 进入表达式递归
+        std::string value = expression(); // 递归
         if (peek().first == "rparen") {
             log("匹配右括号: " + peek().second);
             advance();
+            return value;
         } else {
-            // Error::printError(Error::ErrorType::MISSING_RPAREN,"当前位置: " + peek(-1).second);
             throw std::runtime_error("缺少右括号，当前位置: " + peek(-1).second);
         }
     } else {
-        // Error::printError(Error::ErrorType::INVALID_FACTOR,"应为标识符、数字或括号表达式，但实际为: '" + token.second + "'");
         throw std::runtime_error("因子格式错误，应为标识符、数字或括号表达式，但实际为: '" + token.second + "'");
     }
 }
