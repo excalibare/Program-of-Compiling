@@ -38,18 +38,24 @@ void Parser::statement() {
         condition();
         match("dosym"); // consume 'do'
         statement();
+        advance();
     } else if (token.first == "beginsym") {
         log("匹配 begin ... end 语句块");
-        advance(); // consume 'begin'
+        advance(); // 消费 'begin'
         statement(); // 解析第一条语句
 
+        // 修改后的分号处理逻辑
         while (peek().first == "semicolon") {
-            advance(); // consume ';'
-            statement(); // 后续语句
+            advance(); // 消费分号
+            // 检查分号后是否直接跟着 'end'
+            if (peek().first == "endsym") {
+                break; // 允许最后的分号，直接退出循环
+            }
+            statement(); // 解析后续语句
         }
 
         if (peek().first == "endsym") {
-            advance(); // consume 'end'
+            advance(); // 消费 'end'
         } else {
             throw std::runtime_error("缺少 'end'，当前位置: " + peek().second);
         }

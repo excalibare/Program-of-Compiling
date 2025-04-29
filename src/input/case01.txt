@@ -1,4 +1,4 @@
 begin
-    y + 1;
-    while x < 10 do x + 1
+    x := y + 1;
+    while x < 10 do x + 1;
 end
