@@ -15,7 +15,7 @@
 
 using namespace std;
 
-int main(){
+int main() {
     // 强制使用UTF-8
     // 切输出/输入都用 UTF‑8
     SetConsoleOutputCP(CP_UTF8);
@@ -33,7 +33,11 @@ int main(){
         "../src/input/case04.txt",
         "../src/input/case05.txt",
         "../src/input/case06.txt",
-    "../src/input/parse.txt",};
+        "../src/input/case07.txt",
+        "../src/input/case08.txt",
+        "../src/input/case09.txt",
+        "../src/input/parse.txt",
+    };
 
 
     for (size_t i = 0; i < inputFiles.size(); i++) {
@@ -41,8 +45,8 @@ int main(){
         if (!file.is_open()) {
             cout << "Could not open file" << endl;
             return 0;
-        }else {
-            cerr << "现分析第" << i+1 << "个文件: " << inputFiles[i] << endl;
+        } else {
+            cerr << "现分析第" << i + 1 << "个文件: " << inputFiles[i] << endl;
         }
 
         string input((istreambuf_iterator<char>(file)),
@@ -52,7 +56,7 @@ int main(){
         auto tokens = lexer.analyze(input);
         Parser parser(tokens);
         parser.debug_off(); // 开启调试信息
-        parser.analyze();  // 分析整个 token 流（支持 if, while, begin 等）
+        parser.analyze(); // 分析整个 token 流（支持 if, while, begin 等）
     }
 
 

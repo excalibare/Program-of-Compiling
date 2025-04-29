@@ -1,5 +1,12 @@
 begin
-  x := 0;
-  while x < 5 do
-    x := x + 1;
+  a := 10;
+  b := 5;
+  if a > b then
+    if b > 0 then
+      a := a - b
+    else
+      a := 0
+  else
+    b := b - a
 end
+

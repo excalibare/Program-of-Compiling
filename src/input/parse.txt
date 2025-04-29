@@ -1,6 +1,14 @@
 begin
-    y := y + 1;
-    while x < 10 do x := x + 1;
+  a := 1;
+  b := 2;
+  c := 3;
+  if a < b then
+    if b < c then
+      a := c
+    else
+      b := a;
+  while a < 10 do
+    a := a + 1;
 end
 
 
