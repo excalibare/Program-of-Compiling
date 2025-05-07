@@ -63,10 +63,11 @@ void Parser::statement() {
         log("匹配赋值语句");
         advance(); // consume 标识符
         advance(); // consume :=
-        expression(); // 解析右侧表达式
+        int value = expression(); // 解析右侧表达式并计算值
+        std::cerr << "赋值语句计算结果: " << value << std::endl;
     } else {
-        log("匹配表达式作为语句 (临时占位)");
-        expression(); // 其他情况作为表达式处理
+        int value = expression(); // 计算表达式的值
+        std::cerr << "表达式计算结果: " << value << std::endl;
     }
 }
 
@@ -89,54 +90,60 @@ void Parser::condition() {
 }
 
 
-void Parser::expression() {
+int Parser::expression() {
+    int value = 0; // 用于存储表达式的值
     auto token = peek();
-    // [+|-]
     if (isAddOp(token.first)) {
-        log("匹配前导加法运算符: " + token.second);
         advance();
     }
-    // <项>
-    term();
-    // {<加法运算符> <项>}
+    value = term(); // 计算第一个项的值
     while (!isAtEnd() && isAddOp(peek().first)) {
-        log("匹配加法运算符: " + peek().second);
+        auto op = peek();
         advance();
-        term();
+        int nextTerm = term(); // 计算下一个项的值
+        if (op.first == "plus") {
+            value += nextTerm;
+        } else if (op.first == "minus") {
+            value -= nextTerm;
+        }
     }
+    return value; // 返回最终的表达式值
 }
 
-void Parser::term() {
-    // <因子>
-    factor();
-    // {<乘法运算符> <因子>}
+int Parser::term() {
+    int value = factor(); // 计算第一个因子的值
     while (!isAtEnd() && isMulOp(peek().first)) {
-        log("匹配乘法运算符: " + peek().second);
+        auto op = peek();
         advance();
-        factor();
+        int nextFactor = factor(); // 计算下一个因子的值
+        if (op.first == "times") {
+            value *= nextFactor;
+        } else if (op.first == "slash") {
+            if (nextFactor == 0) {
+                throw std::runtime_error("除以零错误");
+            }
+            value /= nextFactor;
+        }
     }
+    return value;
 }
 
-void Parser::factor() {
-    // <标识符>|<无符号整数>| ‘(’<表达式>‘)’
+int Parser::factor() {
     auto token = peek();
-    if (token.first == "ident" || token.first == "number") {
-        log("匹配因子: " + token.second);
+    if (token.first == "number") {
         advance();
+        return std::stoi(token.second); // 返回数字的值
     } else if (token.first == "lparen") {
-        log("匹配左括号: " + token.second);
         advance();
-        expression(); // 进入表达式递归
+        int value = expression(); // 递归计算括号内的表达式值
         if (peek().first == "rparen") {
-            log("匹配右括号: " + peek().second);
             advance();
         } else {
-            // Error::printError(Error::ErrorType::MISSING_RPAREN,"当前位置: " + peek(-1).second);
-            throw std::runtime_error("缺少右括号，当前位置: " + peek(-1).second);
+            throw std::runtime_error("缺少右括号");
         }
+        return value;
     } else {
-        // Error::printError(Error::ErrorType::INVALID_FACTOR,"应为标识符、数字或括号表达式，但实际为: '" + token.second + "'");
-        throw std::runtime_error("因子格式错误，应为标识符、数字或括号表达式，但实际为: '" + token.second + "'");
+        throw std::runtime_error("因子格式错误");
     }
 }
 

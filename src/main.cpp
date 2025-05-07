@@ -5,7 +5,7 @@
 #include <iomanip>
 // 强制使用UTF-8
 #include <windows.h>
-
+#include <stdlib.h>
 #include "Lexer.h"
 #include "Parser.h"
 #include "Utils.h"
@@ -27,13 +27,17 @@ int main(){
 
     // 从文件读取输入
     vector<string> inputFiles = {
-        "../src/input/case01.txt",
-        "../src/input/case02.txt",
-        "../src/input/case03.txt",
-        "../src/input/case04.txt",
-        "../src/input/case05.txt",
-        "../src/input/case06.txt",
-    "../src/input/parse.txt",};
+        "../src/input4/case01.txt",
+        "../src/input4/case02.txt",
+        "../src/input4/case03.txt",
+        "../src/input4/case04.txt",
+        "../src/input4/case05.txt",
+        "../src/input4/case06.txt",
+        "../src/input4/case07.txt",
+        "../src/input4/case08.txt",
+        "../src/input4/case09.txt",
+        "../src/input4/case10.txt",
+    };
 
 
     for (size_t i = 0; i < inputFiles.size(); i++) {
@@ -55,7 +59,6 @@ int main(){
         parser.analyze();  // 分析整个 token 流（支持 if, while, begin 等）
     }
 
-
     // vector<vector<pair<string,string>>> expressions = {
     //     {{"lparen","("},{"number","3"},{"plus","+"},{"number","4"}},
     //     {{"number","3"},{"plus","+"},{"times","*"},{"number","5"}},
@@ -76,6 +79,10 @@ int main(){
     //     parser.analyze();
     //
     // }
+    printf("\n按回车键退出...");
+    while (getchar() != '\n');
+    getchar();
+    return 0;
 }
 
 // int main()
@@ -132,6 +139,6 @@ int main(){
 //                 << ", " << setw(4) << t.second << ")" << endl;
 //         }
 //     }
-//     // system("pause");
+//     system("pause");
 //     return 0;
 // }

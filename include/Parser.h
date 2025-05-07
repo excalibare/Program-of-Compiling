@@ -9,6 +9,7 @@
 #include <string>
 #include <utility>
 #include <iostream>
+#include <stack>
 
 // 采用递归子程序法进行语法分析
 class Parser {
@@ -23,9 +24,10 @@ private:
     std::vector<std::pair<std::string, std::string>> tokens;
     int current; // 当前token下标
 
-    void expression();      // <表达式>
-    void term();            // <项>
-    void factor();          // <因子>
+    int expression();      // <表达式>
+    int term();            // <项>
+    int factor();          // <因子>
+    int result;             // <表达式结果>
     void statement();       // <语句>
     void condition();       // <判断条件>
     void match(const std::string& expectedType); // 匹配当前token类型
