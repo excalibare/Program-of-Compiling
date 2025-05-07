@@ -79,9 +79,9 @@ int main(){
     //     parser.analyze();
     //
     // }
-    printf("\n按回车键退出...");
-    while (getchar() != '\n');
-    getchar();
+    // printf("\n按回车键退出...");
+    // while (getchar() != '\n');
+    // getchar();
     return 0;
 }
 

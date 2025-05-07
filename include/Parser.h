@@ -10,6 +10,7 @@
 #include <utility>
 #include <iostream>
 #include <stack>
+#include <unordered_map>
 
 // 采用递归子程序法进行语法分析
 class Parser {
@@ -22,6 +23,7 @@ public:
 private:
     static bool debug;
     std::vector<std::pair<std::string, std::string>> tokens;
+    std::unordered_map<std::string, int> constTable;
     int current; // 当前token下标
 
     int expression();      // <表达式>

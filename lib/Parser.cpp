@@ -7,10 +7,13 @@ Parser::Parser(const std::vector<std::pair<std::string, std::string> > &tokens)
 
 void Parser::analyze() {
     try {
-        statement();
-        if (!isAtEnd()) {
-            throw std::runtime_error("存在多余符号，语句后仍有内容: '" + peek().second + "'");
+        while (!isAtEnd()) {
+            statement();
         }
+        // statement();
+        // if (!isAtEnd()) {
+        //     throw std::runtime_error("存在多余符号，语句后仍有内容: '" + peek().second + "'");
+        // }
         std::cerr << "语法正确!" << std::endl;
     } catch (const std::exception &e) {
         std::cerr << "语法错误: " << e.what() << std::endl;
@@ -65,7 +68,34 @@ void Parser::statement() {
         advance(); // consume :=
         int value = expression(); // 解析右侧表达式并计算值
         std::cerr << "赋值语句计算结果: " << value << std::endl;
-    } else {
+    }else if (token.first == "constsym"){
+        log("匹配 const 声明");
+        advance(); // consume 'const'
+
+        while (true) {
+            std::string name = peek().second;
+            match("ident");      // consume 标识符
+            match("eql");        // consume '='
+            auto valueToken = peek();
+            match("number");     // consume 数字
+
+            int value = std::stoi(valueToken.second);
+            constTable[name] = value; // 添加到符号表
+            log("常量定义: " + name + " = " + std::to_string(value));
+
+            if (peek().first == "comma") {
+                advance(); // 多个 const，用逗号隔开
+            } else if (peek().first == "semicolon") {
+                advance(); // const 声明结束
+                break;
+            } else {
+                throw std::runtime_error("常量声明格式错误，缺少 ',' 或 ';'");
+            }
+        }
+    }else if (token.first == "semicolon") {
+        advance();
+    }
+    else {
         int value = expression(); // 计算表达式的值
         std::cerr << "表达式计算结果: " << value << std::endl;
     }
@@ -133,6 +163,14 @@ int Parser::factor() {
     if (token.first == "number") {
         advance();
         return std::stoi(token.second); // 返回数字的值
+    } else if (token.first == "ident") {
+        advance();
+        auto it = constTable.find(token.second);
+        if (it == constTable.end()) {
+            throw std::runtime_error("未定义的标识符: " + token.second);
+        }
+        log("使用常量 " + token.second + " 的值: " + std::to_string(it->second));
+        return it->second;
     } else if (token.first == "lparen") {
         advance();
         int value = expression(); // 递归计算括号内的表达式值
@@ -143,6 +181,7 @@ int Parser::factor() {
         }
         return value;
     } else {
+        log("<UNK>: " + token.second + " (" + token.first + ")");
         throw std::runtime_error("因子格式错误");
     }
 }
