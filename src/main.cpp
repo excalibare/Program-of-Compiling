@@ -55,7 +55,7 @@ int main() {
         // 执行词法分析
         auto tokens = lexer.analyze(input);
         Parser parser(tokens);
-        parser.debug_off(); // 开启调试信息
+        parser.debug_on(); // 开启调试信息
         parser.analyze(); // 分析整个 token 流（支持 if, while, begin 等）
     }
 

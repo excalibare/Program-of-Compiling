@@ -1,61 +1,63 @@
-//
-// Created by LTY on 2025/4/19.
-//
-
 #ifndef PARSER_H
 #define PARSER_H
 
 #include <vector>
 #include <string>
-#include <utility>
-#include <iostream>
+#include <stack>
+#include <stdexcept> // For std::runtime_error
+#include <iostream>  // For std::cerr (used in log)
 
-using namespace std;
+// Forward declaration of Lexer if needed, or include Lexer.h if it defines pair
+// For now, assuming std::pair<std::string, std::string> is well-understood.
 
-struct Quadruple {
-    std::string op;     // 运算符
-    std::string arg1;   // 左操作数
-    std::string arg2;   // 右操作数
-    std::string result; // 结果
-};
-
-// 采用递归子程序法进行语法分析
 class Parser {
 public:
-    explicit Parser(const std::vector<std::pair<std::string, std::string>>& tokens);
+    // Structure for Quadruples
+    struct Quad {
+        std::string op;
+        std::string arg1;
+        std::string arg2;
+        std::string result;
+    };
+
+    Parser(const std::vector<std::pair<std::string, std::string> > &tokens);
     void analyze();
-    void debug_on();
-    void debug_off();
+    void printQuads() const;
+
+    // Debugging controls
+    static void debug_on();
+    static void debug_off();
 
 private:
-    static bool debug;
-    std::vector<std::pair<std::string, std::string>> tokens;
-    int current; // 当前token下标
-    std::vector<Quadruple> quads; // 四元式序列
-    int tempVarCount = 0;         // 临时变量计数器
+    std::vector<std::pair<std::string, std::string> > tokens_;
+    size_t currentTokenIndex_;
+    std::vector<Quad> quads_;
 
-    string expression();      // <表达式>
-    string term();            // <项>
-    string factor();          // <因子>
-    void statement();       // <语句>
-    void condition();       // <判断条件>
-    void match(const std::string& expectedType); // 匹配当前token类型
+    // For S-attributed semantic processing
+    std::stack<std::string> semanticStack_;
+    int tempCounter_;
 
-    bool isAddOp(const std::string& type);
-    bool isMulOp(const std::string& type);
-    bool isRelOp(const std::string& type); // 是否为判断语句
+    // Parsing methods
+    void program(); // Assuming a program can be a single statement or block
+    void block(); // Placeholder for block structure if you expand PL/0 grammar
+    void statement();
+    void condition();
+    void expression();
+    void term();
+    void factor();
 
-    std::pair<std::string, std::string> peek(int offset = 0);
+    // Helper methods
+    std::string newTemp();
+    void match(const std::string &expectedType);
+    bool isAddOp(const std::string &type) const;
+    bool isMulOp(const std::string &type) const;
+    bool isRelOp(const std::string &type) const;
+    std::pair<std::string, std::string> peek(int offset = 0) const;
     void advance();
     bool isAtEnd() const;
 
-    void log(const std::string& msg);
-    void printQuads() const;
-
-    // 提供给中间代码生成
-    std::string newTemp() {
-        return "t" + std::to_string(tempVarCount++);
-    }
+    static bool debug_mode_; // Static member for debug state
+    void log(const std::string &msg) const;
 };
 
-#endif
+#endif // PARSER_H

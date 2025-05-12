@@ -1,0 +1,22 @@
+<statement_part> ::= <statement> { ; <statement> }
+
+<statement> ::= <ident> := <expression>  //赋值
+                 | if <condition> then <statement> [ else <statement> ]
+                 | while <condition> do <statement>
+                 | begin <statement> { ; <statement> } end
+
+<condition> ::= odd <expression>
+               | <expression> <relop> <expression>  //AND/OR
+
+<expression> ::= [ + | - ] <term> { <addop> <term> }
+    E1: <expression> ::= <term> <expression'>
+    E2: <expression'> ::= <addop> <term> <expression'> | ε
+    E3: <addop> ::= + | -
+
+<term> ::= <factor> <term'>
+    T1: <term'> ::= <mulop> <factor> <term'> | ε
+    T2: <mulop> ::= * | /
+
+<factor> ::= <ident>
+<factor> ::= <number>
+<factor> ::= ( <expression> )
