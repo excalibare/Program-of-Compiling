@@ -27,7 +27,11 @@ private:
     int current; // 当前token下标
 
     int expression();      // <表达式>
+    int expressionPrime(int inherited);
+
     int term();            // <项>
+    int termPrime(int inherited);
+
     int factor();          // <因子>
     int result;             // <表达式结果>
     void statement();       // <语句>

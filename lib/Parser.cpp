@@ -121,68 +121,74 @@ void Parser::condition() {
 
 
 int Parser::expression() {
-    int value = 0; // 用于存储表达式的值
+    // 表达式 → 项 表达式'
+    int val1 = term();
+    return expressionPrime(val1);
+}
+
+// 表达式' → + 项 {val = val1 + val2} 表达式' | - 项 {val = val1 - val2} 表达式' | ε
+int Parser::expressionPrime(int inherited) {
     auto token = peek();
-    if (isAddOp(token.first)) {
-        advance();
+    if (token.first == "plus" || token.first == "minus") {
+        advance(); // 消费 + 或 -
+        int val2 = term();
+        int result = (token.first == "plus") ? (inherited + val2) : (inherited - val2);
+        return expressionPrime(result); // 继续处理表达式'
     }
-    value = term(); // 计算第一个项的值
-    while (!isAtEnd() && isAddOp(peek().first)) {
-        auto op = peek();
-        advance();
-        int nextTerm = term(); // 计算下一个项的值
-        if (op.first == "plus") {
-            value += nextTerm;
-        } else if (op.first == "minus") {
-            value -= nextTerm;
-        }
-    }
-    return value; // 返回最终的表达式值
+    return inherited; // ε
 }
 
 int Parser::term() {
-    int value = factor(); // 计算第一个因子的值
-    while (!isAtEnd() && isMulOp(peek().first)) {
-        auto op = peek();
-        advance();
-        int nextFactor = factor(); // 计算下一个因子的值
-        if (op.first == "times") {
-            value *= nextFactor;
-        } else if (op.first == "slash") {
-            if (nextFactor == 0) {
-                throw std::runtime_error("除以零错误");
-            }
-            value /= nextFactor;
+    // 项 → 因子 项'
+    int val1 = factor();
+    return termPrime(val1);
+}
+
+// 项' → * 因子 {val = val1 * val2} 项' | / 因子 {val = val1 / val2} 项' | ε
+int Parser::termPrime(int inherited) {
+    auto token = peek();
+    if (token.first == "times" || token.first == "slash") {
+        advance(); // 消 * 或 /
+        int val2 = factor();
+        int result;
+        if (token.first == "times") {
+            result = inherited * val2;
+        } else {
+            if (val2 == 0) throw std::runtime_error("除以零错误");
+            result = inherited / val2;
         }
+        return termPrime(result); // 继续处理项'
     }
-    return value;
+    return inherited; // ε
 }
 
 int Parser::factor() {
     auto token = peek();
+
+    // 处理一元加减符号：+因子 | -因子
+    if (token.first == "plus" || token.first == "minus") {
+        advance();
+        int val = factor();
+        return (token.first == "minus") ? -val : val;
+    }
+
     if (token.first == "number") {
         advance();
-        return std::stoi(token.second); // 返回数字的值
+        return std::stoi(token.second);
     } else if (token.first == "ident") {
         advance();
         auto it = constTable.find(token.second);
         if (it == constTable.end()) {
             throw std::runtime_error("未定义的标识符: " + token.second);
         }
-        log("使用常量 " + token.second + " 的值: " + std::to_string(it->second));
         return it->second;
     } else if (token.first == "lparen") {
         advance();
-        int value = expression(); // 递归计算括号内的表达式值
-        if (peek().first == "rparen") {
-            advance();
-        } else {
-            throw std::runtime_error("缺少右括号");
-        }
-        return value;
+        int val = expression();
+        match("rparen");
+        return val;
     } else {
-        log("<UNK>: " + token.second + " (" + token.first + ")");
-        throw std::runtime_error("因子格式错误");
+        throw std::runtime_error("因子格式错误，当前为: " + token.second);
     }
 }
 
