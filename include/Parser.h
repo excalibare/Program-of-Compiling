@@ -28,6 +28,8 @@ public:
     static void debug_on();
     static void debug_off();
 
+    const std::vector<Quad>& getQuads() const { return quads_; }
+
 private:
     std::vector<std::pair<std::string, std::string> > tokens_;
     size_t currentTokenIndex_;

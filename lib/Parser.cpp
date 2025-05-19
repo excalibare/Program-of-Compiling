@@ -128,10 +128,9 @@ void Parser::factor() {
         advance();
     } else if (token.first == "lparen") {
         log("因子为 (表达式)");
-        advance(); // consume '('
-        expression(); // Result of expression will be left on semanticStack_
-        match("rparen"); // consume ')'
-        // The result of the (expression) is already on top of semanticStack_
+        advance(); // '('
+        expression();
+        match("rparen"); // ')'
     } else {
         throw std::runtime_error("因子格式错误: 应为标识符、数字或 '(表达式)', 但得到: '" + token.first + " (" + token.second + ")'");
     }
@@ -140,17 +139,17 @@ void Parser::factor() {
 
 void Parser::term() {
     log("进入 term");
-    factor(); // Result of factor is on semanticStack_
+    factor();
 
     while (!isAtEnd() && isMulOp(peek().first)) {
         std::pair<std::string, std::string> opToken = peek();
-        std::string opSymbol = opToken.second; // Default to token value
+        std::string opSymbol = opToken.second;
         if (opToken.first == "times") opSymbol = "*";
         else if (opToken.first == "slash") opSymbol = "/";
 
         log("项中匹配乘法运算符: " + opSymbol);
-        advance(); // Consume operator
-        factor();  // Result of the right-hand factor is on semanticStack_
+        advance(); // *
+        factor();
 
         if (semanticStack_.size() < 2) throw std::runtime_error("语义栈错误: 乘除法运算缺少操作数");
         std::string rightOperand = semanticStack_.top(); semanticStack_.pop();
@@ -166,14 +165,14 @@ void Parser::term() {
 
 void Parser::expression() {
     log("进入 expression");
-    std::string unaryOpStr = ""; // For optional leading + or -
+    std::string unaryOpStr = "";
     if (peek().first == "plus" || peek().first == "minus") {
         unaryOpStr = (peek().first == "plus") ? "+" : "-";
         log("表达式前导一元运算符: " + unaryOpStr);
-        advance(); // Consume unary operator
+        advance(); // + or -
     }
 
-    term(); // Result of the first term is on semanticStack_
+    term();
 
     if (!unaryOpStr.empty()) {
         if (semanticStack_.empty()) throw std::runtime_error("语义栈错误: 一元运算缺少操作数");
@@ -181,14 +180,10 @@ void Parser::expression() {
 
         if (unaryOpStr == "-") {
             std::string tempVar = newTemp();
-            // Represent unary minus, e.g., as (-, 0, operand, temp) or (UMINUS, operand, , temp)
             quads_.push_back({"-", "0", operand, tempVar}); // Using (op, arg1, arg2, result) for unary
             log("生成一元减四元式: (-, 0, " + operand + ", " + tempVar + ")");
             semanticStack_.push(tempVar);
         } else if (unaryOpStr == "+") {
-            // Unary plus usually doesn't generate code. The operand itself is the result.
-            // If it did, it would be similar to unary minus.
-            // For now, assume no code, so push the original operand back.
             semanticStack_.push(operand);
             log("处理一元加运算符 (无四元式生成，操作数 " + operand + " 已在栈顶)");
         }
@@ -226,53 +221,50 @@ void Parser::statement() {
         advance(); // consume ident
         match("becomes"); // consume := (advances past it)
 
-        expression(); // Process the expression, result will be on semanticStack_
+        expression();
 
         if (semanticStack_.empty()) {
             throw std::runtime_error("赋值语句的表达式部分未能产生结果到语义栈");
         }
         std::string exprResultPlace = semanticStack_.top(); semanticStack_.pop();
-        // PL/0 assignment is `variable := expression`
-        // Quad: (":=", source, "", destination)
         quads_.push_back({":=", exprResultPlace, "", varName});
         log("生成赋值四元式: (:=, " + exprResultPlace + ", , " + varName + ")");
 
     } else if (token.first == "ifsym") {
         log("匹配 if 语句");
-        advance(); // consume 'if'
-        condition(); // condition result (a temp var) will be on semanticStack_
-                     // For actual jumps, you'd pop this and generate JPC quad.
+        advance();
+        condition();
         if(semanticStack_.empty()) throw std::runtime_error("IF 条件未产生结果到语义栈");
         std::string condResultPlace = semanticStack_.top(); semanticStack_.pop();
-        log("IF 条件结果: " + condResultPlace); // Placeholder for using condition
+        log("IF 条件结果: " + condResultPlace);
 
-        // Placeholder for jump logic:
+        // 处理跳转逻辑
         int jpcQuadIndex = quads_.size();
-        quads_.push_back({"JPC", condResultPlace, "", " GOTO ? "}); // Jump if condition is false
+        quads_.push_back({"JPC", condResultPlace, "", " GOTO ? "}); // 条件为否时跳转
 
         match("thensym");
-        statement(); // Parse THEN branch
+        statement(); // 处理Then
 
         int jmpQuadIndex = -1;
         if (peek().first == "elsesym") {
             jmpQuadIndex = quads_.size();
-            quads_.push_back({"JMP", "", "", " GOTO ? "}); // Jump over ELSE branch
-            quads_[jpcQuadIndex].result = std::to_string(quads_.size()); // Backpatch JPC
+            quads_.push_back({"JMP", "", "", " GOTO ? "}); // 跳转到Else
+            quads_[jpcQuadIndex].result = std::to_string(quads_.size()); // 处理JPC
 
             log("匹配 else 分支");
-            advance(); // consume 'else'
-            statement(); // Parse ELSE branch
-            quads_[jmpQuadIndex].result = std::to_string(quads_.size()); // Backpatch JMP
+            advance(); // 'else'
+            statement(); // 处理Else
+            quads_[jmpQuadIndex].result = std::to_string(quads_.size()); // 处理JMP
         } else {
-            quads_[jpcQuadIndex].result = std::to_string(quads_.size()); // Backpatch JPC to after THEN branch
+            quads_[jpcQuadIndex].result = std::to_string(quads_.size()); // 处理JPC
         }
          log("结束 IF 语句");
 
     } else if (token.first == "whilesym") {
         log("匹配 while 语句");
-        advance(); // consume 'while'
+        advance(); // 'while'
 
-        int conditionStartIndex = quads_.size(); // Mark start of condition for jump back
+        int conditionStartIndex = quads_.size(); // 储存While起点（供跳转使用）
         log("WHILE 条件开始地址: " + std::to_string(conditionStartIndex));
 
         condition();
@@ -280,69 +272,68 @@ void Parser::statement() {
         std::string condResultPlace = semanticStack_.top(); semanticStack_.pop();
         log("WHILE 条件结果: " + condResultPlace);
 
-        // Placeholder for jump logic:
+        // 处理跳转逻辑
         int jpcQuadIndex = quads_.size();
-        quads_.push_back({"JPC", condResultPlace, "", " GOTO ? "}); // Jump if condition is false (exit loop)
+        quads_.push_back({"JPC", condResultPlace, "", " GOTO ? "}); // 离开循环跳转
 
         match("dosym");
-        statement(); // Parse DO branch (loop body)
+        statement(); // 处理Do
 
-        quads_.push_back({"JMP", "", "", std::to_string(conditionStartIndex)}); // Jump back to condition
-        quads_[jpcQuadIndex].result = std::to_string(quads_.size()); // Backpatch JPC to after loop
+        quads_.push_back({"JMP", "", "", std::to_string(conditionStartIndex)}); // 跳转回判断
+        quads_[jpcQuadIndex].result = std::to_string(quads_.size()); // 处理 JPC
         log("结束 WHILE 语句");
 
     } else if (token.first == "beginsym") {
         log("匹配 begin ... end 语句块");
-        advance(); // 消费 'begin'
+        advance();
         statement();
 
         while (peek().first == "semicolon") {
-            advance(); // 消费分号
-            if (peek().first == "endsym") { // Allows for optional semicolon before end
+            advance();
+            if (peek().first == "endsym") {
                 break;
             }
             statement();
         }
-        match("endsym"); // Consumes 'end'
+        match("endsym"); // 'end'
         log("匹配 end");
     } else if (token.first == "readsym") {
         log("匹配 read 语句");
-        advance(); // consume 'read'
+        advance(); // 'read'
         match("lparen");
         do {
             if (peek().first != "ident") throw std::runtime_error("READ 语句期望标识符");
             std::string varToRead = peek().second;
             quads_.push_back({"READ", "", "", varToRead});
             log("生成 READ 四元式 for " + varToRead);
-            advance(); // consume ident
+            advance(); // ident
             if (peek().first == "comma") {
-                advance(); // consume comma
+                advance(); // comma
             } else break;
         } while(true);
         match("rparen");
     } else if (token.first == "writesym") {
         log("匹配 write 语句");
-        advance(); // consume 'write'
+        advance(); // 'write'
         match("lparen");
         do {
-            expression(); // expression result on stack
+            expression();
             if(semanticStack_.empty()) throw std::runtime_error("WRITE 语句表达式未产生结果");
             std::string valToWrite = semanticStack_.top(); semanticStack_.pop();
             quads_.push_back({"WRITE", valToWrite, "", ""});
             log("生成 WRITE 四元式 for " + valToWrite);
             if (peek().first == "comma") {
-                advance(); // consume comma
+                advance();
             } else break;
         } while(true);
         match("rparen");
     }
-    // Add other statement types if necessary (call)
-    else if (isAtEnd() || token.first == "EOF" || token.first == "endsym" /* already handled by begin-end */) {
-        // Empty statement or end of token stream in a valid way.
+
+    else if (isAtEnd() || token.first == "EOF" || token.first == "endsym") {
         log("语句结束或空语句");
     }
     else {
-       throw std::runtime_error("未知或不期望的语句开始: " + token.first + " ('" + token.second + "')");
+       throw std::runtime_error("错误的语句开头: " + token.first + " ('" + token.second + "')");
     }
     log("退出 statement");
 }
@@ -351,8 +342,8 @@ void Parser::condition() {
     log("进入 condition, 当前 Token: " + peek().first + " ('" + peek().second + "')");
     if (peek().first == "oddsym") {
         log("条件为 odd <表达式>");
-        advance(); // consume 'odd'
-        expression(); // Result of expression on semanticStack_
+        advance(); // 'odd'
+        expression();
         if (semanticStack_.empty()) throw std::runtime_error("ODD 条件的表达式未产生结果");
         std::string exprPlace = semanticStack_.top(); semanticStack_.pop();
         std::string tempVar = newTemp();
@@ -361,22 +352,22 @@ void Parser::condition() {
         log("生成 ODD 四元式: (ODD, " + exprPlace + ", , " + tempVar + ")");
     } else {
         log("条件为 <表达式> <关系符> <表达式>");
-        expression(); // Left expression result on semanticStack_
+        expression();
 
         auto relopToken = peek();
         if (isRelOp(relopToken.first)) {
-            std::string relopSymbol = relopToken.second; // Keep original like '==' '<>', or map them to symbols
+            std::string relopSymbol = relopToken.second;
             // 映射
             if (relopToken.first == "eql") relopSymbol = "==";
-            else if (relopToken.first == "neq") relopSymbol = "<>"; // or "!="
+            else if (relopToken.first == "neq") relopSymbol = "<>";
             else if (relopToken.first == "lss") relopSymbol = "<";
             else if (relopToken.first == "leq") relopSymbol = "<=";
             else if (relopToken.first == "gtr") relopSymbol = ">";
             else if (relopToken.first == "geq") relopSymbol = ">=";
 
             log("条件中匹配关系运算符: " + relopSymbol);
-            advance(); // consume relop
-            expression(); // Right expression result on semanticStack_
+            advance();
+            expression();
 
             if (semanticStack_.size() < 2) throw std::runtime_error("语义栈错误: 条件关系运算缺少操作数");
             std::string rightExprPlace = semanticStack_.top(); semanticStack_.pop();

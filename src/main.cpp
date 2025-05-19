@@ -1,19 +1,31 @@
+// Main.cpp
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <vector>
 #include <iomanip>
-// 强制使用UTF-8
-#include <windows.h>
+#include <windows.h> // Consider if still needed or use cross-platform UTF-8 handling
 
 #include "Lexer.h"
 #include "Parser.h"
+#include "DAGOptimizer.h" // Include the new optimizer
 #include "Utils.h"
 
 
-#define endl "\n"
+#define endl "\n" // Be careful with this if std::endl's flushing behavior is desired
 
 using namespace std;
+
+// Function to print quads to a stream (e.g., cerr or an ofstream)
+void printQuadruples(ostream& os, const std::vector<Parser::Quad>& quads, const std::string& title) {
+    os << "\n--- " << title << " ---" << endl;
+    for (size_t i = 0; i < quads.size(); ++i) {
+        const auto& q = quads[i];
+        os << i << ": ( " << q.op << ", " << q.arg1 << ", " << q.arg2 << ", " << q.result << " )" << endl;
+    }
+    os << "--- End of " << title << " ---" << endl;
+}
+
 
 int main() {
     // 强制使用UTF-8
@@ -24,118 +36,96 @@ int main() {
     std::ios::sync_with_stdio(true);
     std::locale::global(std::locale(""));
 
-
-    // 从文件读取输入
     vector<string> inputFiles = {
-        "../src/input/case01.txt",
+        "../src/input/case01.txt", // Add your test case file paths
         "../src/input/case02.txt",
         "../src/input/case03.txt",
         "../src/input/case04.txt",
         "../src/input/case05.txt",
-        "../src/input/case06.txt",
-        "../src/input/case07.txt",
-        "../src/input/case08.txt",
-        "../src/input/case09.txt",
-        "../src/input/parse.txt",
+        // Add more test cases: common subexpression, constant folding, dead code, etc.
+        "../src/input/test_cse.txt",
+        "../src/input/test_const_fold.txt",
+        "../src/input/test_assignment.txt",
+        "../src/input/test_combined.txt",
+        "../src/input/test_io_control.txt"
     };
 
-
     for (size_t i = 0; i < inputFiles.size(); i++) {
+        cerr << "--- Analyzing file: " << inputFiles[i] << " ---" << endl;
         ifstream file(inputFiles[i]);
         if (!file.is_open()) {
-            cout << "Could not open file" << endl;
-            return 0;
-        } else {
-            cerr << "现分析第" << i + 1 << "个文件: " << inputFiles[i] << endl;
+            cerr << "Could not open file: " << inputFiles[i] << endl;
+            continue;
         }
 
-        string input((istreambuf_iterator<char>(file)),
-                     istreambuf_iterator<char>());
+        string input((istreambuf_iterator<char>(file)), istreambuf_iterator<char>());
+        file.close();
+
         Lexer lexer;
-        // 执行词法分析
         auto tokens = lexer.analyze(input);
+
+        // It seems your parser expects a sequence of statements.
+        // The provided Parser.cpp analyze() method processes tokens until EOF.
+        // If your input files are full PL/0 programs (e.g. VAR X,Y; BEGIN X:=1; END.),
+        // ensure your Parser can handle that structure or adapt inputs.
+        // For basic block optimization, the input quads are key.
+        // The current Parser generates quads internally.
+
         Parser parser(tokens);
-        parser.debug_on(); // 开启调试信息
-        parser.analyze(); // 分析整个 token 流（支持 if, while, begin 等）
+        // parser.debug_on(); // Enable parser debug if needed
+        parser.debug_off();
+        try {
+            parser.analyze();
+        } catch (const std::exception& e) {
+            cerr << "Error during parsing " << inputFiles[i] << ": " << e.what() << endl;
+            if (!parser.getQuads().empty()) {
+                 printQuadruples(cerr, parser.getQuads(), "Generated Quads (incomplete due to error)");
+            }
+            continue;
+        }
+
+
+        const auto& originalQuads = parser.getQuads();
+        printQuadruples(cerr, originalQuads, "Original Quadruples from " + inputFiles[i]);
+
+        // Prepare output file for optimized quads
+        string outputFileName = "../src/output/optimized_case" + std::to_string(i + 1) + ".txt";
+        ofstream outFile(outputFileName);
+        if (!outFile.is_open()) {
+            cerr << "Could not open output file: " << outputFileName << endl;
+        } else {
+             outFile << "Source File: " << inputFiles[i] << endl;
+             printQuadruples(outFile, originalQuads, "Original Quadruples");
+        }
+
+
+        // --- DAG Optimization ---
+        if (!originalQuads.empty()) {
+            DAGOptimizer dag_opt(originalQuads);
+            dag_opt.buildAndOptimizeDAG();
+
+            // For debugging the DAG structure:
+            // cerr << "--- DAG Structure for " << inputFiles[i] << " ---" << endl;
+            // dag_opt.printDAG(); // You'll need to implement printDAG()
+
+            dag_opt.reconstructQuadsFromDAG();
+            const auto& optimizedQuads = dag_opt.getOptimizedQuads();
+            printQuadruples(cerr, optimizedQuads, "Optimized Quadruples for " + inputFiles[i]);
+            if(outFile.is_open()){
+                printQuadruples(outFile, optimizedQuads, "Optimized Quadruples");
+            }
+
+        } else {
+            cerr << "No quadruples generated for " << inputFiles[i] << " to optimize." << endl;
+            if(outFile.is_open()){
+                 outFile << "No quadruples generated to optimize." << endl;
+            }
+        }
+         if(outFile.is_open()){
+            outFile.close();
+         }
+         cerr << "--- Finished analyzing file: " << inputFiles[i] << " ---" << endl << endl;
     }
 
-
-    // vector<vector<pair<string,string>>> expressions = {
-    //     {{"lparen","("},{"number","3"},{"plus","+"},{"number","4"}},
-    //     {{"number","3"},{"plus","+"},{"times","*"},{"number","5"}},
-    //     {{"times","*"},{"number","22"},{"plus","+"},{"number","43"}},
-    //     {{"ifsym","if"},{"number","2"},{"plus","+"},{"number","4"}},
-    //     {{"number","1"},{"plus","+"},{"number","2"},{"ident","x"}},
-    // };
-
-    // 从结果中提取所有表达式并进行词法分析
-    // auto expressions = extractExpressions(tokens);
-    // for (const auto &[rawText, exprTokens] : expressions)
-    // {
-    //
-    //     Parser parser(exprTokens);
-    //     parser.debug_on();
-    //     // parser.debug_off();
-    //     std::cout << "\n正在分析表达式: " << rawText << endl;
-    //     parser.analyze();
-    //
-    // }
+    return 0;
 }
-
-// int main()
-// {
-//     // 从文件读取输入
-//     vector<string> inputFiles = {
-//         "../src/input/case01.txt",
-//         "../src/input/case02.txt",
-//         "../src/input/case03.txt",
-//         "../src/input/case04.txt",
-//         "../src/input/case05.txt",
-//         "../src/input/case06.txt",
-//     "../src/input/parse.txt",};
-//
-//     vector<string> outputFiles = {
-//         "../src/output/output01.txt",
-//         "../src/output/output02.txt",
-//         "../src/output/output03.txt",
-//         "../src/output/output04.txt",
-//         "../src/output/output05.txt",
-//         "../src/output/output06.txt",
-//         "../src/output/outputParse.txt"};
-//
-//     for (size_t i = 0; i < inputFiles.size(); i++)
-//     {
-//         ifstream file(inputFiles[i]);
-//         if (!file) {
-//             cout << "<UNKNOW_FILE>" << inputFiles[i] << "<UNKNOW_FILE>" << endl;
-//         } else {
-//             cout << "<SUCCESS>" << inputFiles[i] << "<SUCCESS>" << endl;
-//         }
-//
-//         string input((istreambuf_iterator<char>(file)),
-//                      istreambuf_iterator<char>());
-//         Lexer lexer;
-//         // 执行词法分析
-//         auto tokens = lexer.analyze(input);
-//
-//         // 计算最大类型长度用于对齐
-//         size_t max_type_len = 0;
-//         for (const auto &t : tokens)
-//         {
-//             if (t.first.length() > max_type_len)
-//             {
-//                 max_type_len = t.first.length();
-//             }
-//         }
-//
-//         // 输出结果
-//         ofstream out(outputFiles[i]);
-//         for (const auto &t : tokens)
-//         {
-//             out << "(" << left << setw(max_type_len) << t.first
-//                 << ", " << setw(4) << t.second << ")" << endl;
-//         }
-//     }
-//     // system("pause");
-//     return 0;
-// }

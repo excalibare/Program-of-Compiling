@@ -1,0 +1,6 @@
+BEGIN
+  A := B + C;
+  D := B + C;
+  E := A * 2;
+  F := D * 2;
+END
