@@ -1,0 +1,55 @@
+好的，我来回答您的这两个问题：
+
+**1. 关于实验要求的 DAG 表示形式（数据结构），目前的DAG表示形式是什么？**
+
+在我们之前讨论和提供的代码中，DAG（有向无环图）的表示形式主要通过以下数据结构和机制实现：
+
+* **`DAGNode` 结构体 (`DAGNode.h`)**: 这是DAG的核心表示。每个`DAGNode`对象代表图中的一个节点。它通常包含以下关键信息：
+    * `id`: 节点的唯一整数标识符。
+    * `op_label`: 一个字符串，表示该节点代表的操作（如 "+"、"-"、"*"、"/" 等算术运算符）或节点的类型（如 "ident" 表示标识符/变量，"const" 表示常量值）。对于特殊操作如一元负号，我们可能会使用 "UMINUS"。
+    * `value`: 如果节点是叶子节点（即代表一个常量或一个标识符的初始值），此字符串存储该常量的值或标识符的名称。
+    * `children`: 一个 `std::vector<DAGNodePtr>` (其中 `DAGNodePtr` 是 `std::shared_ptr<DAGNode>`)，用于存储指向其子节点的智能指针。对于运算节点，子节点代表其操作数。例如，`A+B` 的节点，其子节点将是代表 `A` 的节点和代表 `B` 的节点。正是这个 `children` 成员构成了图的边。
+    * `identifiers`: 一个 `std::set<std::string>`，用于存储所有当前值由该DAG节点表示的程序变量名和临时变量名。这是实现公共子表达式消除和值跟踪的关键，一个节点可能对应多个变量（例如 `T1 = A+B; X = A+B;`，则 `A+B` 的节点会被 `T1` 和 `X` 共享）。
+    * `is_operator_node`: 一个布尔标志，指明该节点是运算节点 (true) 还是叶子节点 (false)。
+    * `is_constant_val` 和 `constant_value`: 用于存储常量折叠的结果。如果一个节点代表的表达式可以被折叠成一个常量，`is_constant_val` 为 true，`constant_value` 存储该常量字符串。
+
+* **`DAGOptimizer` 类中的管理结构 (`DAGOptimizer.h`, `DAGOptimizer.cpp`)**:
+    * `std::vector<DAGNodePtr> dag_nodes_`: 一个向量，用于存储在DAG构建过程中创建的所有唯一的 `DAGNode` 对象的共享指针。这可以看作是图中所有节点的集合。
+    * `std::map<std::string, DAGNodePtr> active_node_for_var_`: 一个非常重要的映射表。它的键是变量名（字符串，包括用户定义的变量和编译器生成的临时变量如 `T1`, `T2`），值是 `DAGNodePtr`，指向当前代表该变量最新值的DAG节点。当处理一个四元式如 `X := Y op Z` 时，我们会查找 `Y` 和 `Z` 对应的节点，然后为 `op` 创建或复用一个节点，最后更新 `active_node_for_var_[X]` 指向这个新的运算结果节点。
+
+**总结来说，目前的DAG表示形式是：**
+通过 `DAGNode` 对象来表示图中的每一个值或运算，节点间的依赖关系（运算和操作数）通过 `children` 指针列表体现。整个DAG由这些相互连接的 `DAGNode` 对象构成，并由 `DAGOptimizer` 类中的辅助数据结构（如 `dag_nodes_` 列表和 `active_node_for_var_` 映射）进行管理和访问。
+
+**2. 关于实验要求四元式的形式包括 0 型、1 型和 2 型三种，请问这一点体现在哪里？**
+
+四元式的0型、1型和2型主要指的是一个操作（`op`）需要几个**源操作数**（通常来自 `arg1` 和 `arg2` 字段）来计算并产生结果（通常存入 `result` 字段）。这一点在 `DAGOptimizer::buildAndOptimizeDAG()` 方法中处理不同四元式时的逻辑中体现：
+
+* **2 型四元式 (Binary Operations)**:
+    * **定义**: 操作 `op` 需要两个明确的源操作数 `arg1` 和 `arg2`。
+    * **例子**: `(+, A, B, T1)`，`(>, X, Y, T2)`。
+    * **体现**: 在 `buildAndOptimizeDAG()` 中，当遇到如 `+`, `-` (二元), `*`, `/`, `<`, `==` 等操作符时，代码会尝试从 `quad.arg1` 和 `quad.arg2` 获取对应的 `DAGNodePtr` (即 `node_arg1` 和 `node_arg2`)。然后调用 `getOperatorNode(current_op, node_arg1, node_arg2)` 来创建或复用一个有两个子节点的运算节点。
+
+* **1 型四元式 (Unary Operations / Assignment)**:
+    * **定义**: 操作 `op` 需要一个明确的源操作数。
+    * **例子**:
+        * 赋值: `(:=, A, , X)` (即 `X := A`)。这里 `A` (来自 `quad.arg1`) 是源操作数。`quad.arg2` 通常为空。
+        * 一元负号: 您的解析器生成 `(-, 0, A, T1)` (即 `T1 := -A`)。这里 `A` (来自 `quad.arg2`) 是源操作数，`quad.arg1` 的 "0" 只是一个约定。在 `DAGOptimizer` 中，我们将其转换为内部的 "UMINUS" 操作，并只使用 `A` 对应的节点作为子节点。
+        * `ODD`: `(ODD, P, , T3)`。`P` (来自 `quad.arg1`) 是源操作数。
+    * **体现**:
+        * 对于 `:=`：代码会将 `quad.result` (目标变量) 在 `active_node_for_var_` 中映射到 `quad.arg1` (源) 对应的 `DAGNodePtr` (`result_node = node_arg1;`)。
+        * 对于 `UMINUS` (从 `(-, 0, A, T1)` 转换而来) 或 `ODD`：代码会获取 `quad.arg1` (或 `quad.arg2` 对于UMINUS的原始形式) 对应的 `node_arg1`，然后调用 `getOperatorNode(current_op, node_arg1, nullptr)` (或等价的只传一个子节点的调用) 来创建或复用一个只有一个子节点的运算节点。
+
+* **0 型四元式 (Nullary Operations / Special)**:
+    * **定义**: 操作 `op` 不需要来自 `arg1` 或 `arg2` 的传统意义上的源操作数来计算结果，或者其操作数有特殊含义。
+    * **例子**:
+        * `READ`: `(READ, , , A)`。没有源操作数，`A` (在 `quad.result` 中) 是目标。
+        * `WRITE`: `(WRITE, A, , )`。`A` (在 `quad.arg1` 中) 是要输出的值，可以看作是一个参数，但不是用于计算新结果的“源操作数”。`quad.arg2` 和 `quad.result` 通常为空。
+        * 无条件跳转: `(JMP, , , label)`。
+        * 条件跳转: `(JPC, Cond, , label)`。`Cond` (在 `quad.arg1` 中) 是一个条件值，而不是算术运算的操作数。
+    * **体现**:
+        * 在 `buildAndOptimizeDAG()` 的主循环开头，有针对 `READ`, `WRITE`, `JMP`, `JPC` 等特殊操作的 `if/else if` 判断。
+        * `READ X`: 会为 `X` 创建一个新的叶子节点，表示其值来自外部输入，并更新 `active_node_for_var_`。这条指令本身会被存入 `control_flow_and_io_quads_`。
+        * `WRITE X`: 会查找 `X` 对应的节点。如果 `X` 的值是常量，则会用常量值更新 `WRITE` 指令的参数。这条指令也会存入 `control_flow_and_io_quads_`。
+        * `JMP`, `JPC`: 通常直接存入 `control_flow_and_io_quads_`。对于 `JPC Cond, Label`，`Cond` 对应的节点的值（如果能确定为常量）也可能被用于优化这条指令，但这超出了基本DAG优化的范畴，通常在更高级的控制流优化中处理。在我们的实现中，主要是参数的常量值替换。
+
+因此，四元式的不同类型是通过 `buildAndOptimizeDAG()` 方法中对 `quad.op` 的判断，以及对 `quad.arg1` 和 `quad.arg2` 是否为空或有特定约定值（如一元负号的 "0"）的检查来隐式区分和处理的。根据这些区分，代码会调用不同参数数量的 `getOperatorNode`，或者执行特定的赋值逻辑，或者将指令作为特殊的I/O或控制流指令处理。
