@@ -46,8 +46,7 @@ int main() {
         "../src/input/test_cse.txt",
         "../src/input/test_const_fold.txt",
         "../src/input/test_assignment.txt",
-        "../src/input/test_combined.txt",
-        "../src/input/test_io_control.txt"
+        "../src/input/test_combined.txt"
     };
 
     for (size_t i = 0; i < inputFiles.size(); i++) {

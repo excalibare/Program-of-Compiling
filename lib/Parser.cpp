@@ -107,7 +107,7 @@ void Parser::analyze() {
              throw std::runtime_error("存在多余符号，语句后仍有内容: '" + peek().second + "' (类型: " + peek().first + ")");
         }
         std::cerr << "语法分析成功!" << std::endl;
-        printQuads();
+        // printQuads();
     } catch (const std::exception &e) {
         std::cerr << "语法错误: " << e.what() << std::endl;
         // Optionally print quads generated so far for debugging
