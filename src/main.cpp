@@ -3,31 +3,61 @@
 #include <string>
 #include <vector>
 #include <iomanip>
-
+// 强制使用UTF-8
+#include <windows.h>
+#include <stdlib.h>
 #include "Lexer.h"
 #include "Parser.h"
 #include "Utils.h"
+
 
 #define endl "\n"
 
 using namespace std;
 
-
-
 int main(){
-    ifstream file("../src/input/parse.txt");
-    if (!file.is_open()) {
-        cout << "Could not open file" << endl;
-        return 0;
-    }else {
-        cout << "File opened successfully" << endl;
-    }
+    // 强制使用UTF-8
+    // 切输出/输入都用 UTF‑8
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+    // 如有需要，也让 C++ IO 流用本地环境
+    std::ios::sync_with_stdio(true);
+    std::locale::global(std::locale(""));
 
-    string input((istreambuf_iterator<char>(file)),
-                 istreambuf_iterator<char>());
-    Lexer lexer;
-    // 执行词法分析
-    auto tokens = lexer.analyze(input);
+
+    // 从文件读取输入
+    vector<string> inputFiles = {
+        "../src/input4/case01.txt",
+        "../src/input4/case02.txt",
+        "../src/input4/case03.txt",
+        "../src/input4/case04.txt",
+        "../src/input4/case05.txt",
+        "../src/input4/case06.txt",
+        "../src/input4/case07.txt",
+        "../src/input4/case08.txt",
+        "../src/input4/case09.txt",
+        "../src/input4/case10.txt",
+    };
+
+
+    for (size_t i = 0; i < inputFiles.size(); i++) {
+        ifstream file(inputFiles[i]);
+        if (!file.is_open()) {
+            cout << "Could not open file" << endl;
+            return 0;
+        }else {
+            cerr << "现分析第" << i+1 << "个文件: " << inputFiles[i] << endl;
+        }
+
+        string input((istreambuf_iterator<char>(file)),
+                     istreambuf_iterator<char>());
+        Lexer lexer;
+        // 执行词法分析
+        auto tokens = lexer.analyze(input);
+        Parser parser(tokens);
+        parser.debug_on(); // 开启调试信息
+        parser.analyze();  // 分析整个 token 流（支持 if, while, begin 等）
+    }
 
     // vector<vector<pair<string,string>>> expressions = {
     //     {{"lparen","("},{"number","3"},{"plus","+"},{"number","4"}},
@@ -38,13 +68,21 @@ int main(){
     // };
 
     // 从结果中提取所有表达式并进行词法分析
-    auto expressions = extractExpressions(tokens);
-    for (const auto &expr : expressions)
-    {
-        Parser parser(expr);
-        parser.debug_on();
-        parser.analyze();
-    }
+    // auto expressions = extractExpressions(tokens);
+    // for (const auto &[rawText, exprTokens] : expressions)
+    // {
+    //
+    //     Parser parser(exprTokens);
+    //     parser.debug_on();
+    //     // parser.debug_off();
+    //     std::cout << "\n正在分析表达式: " << rawText << endl;
+    //     parser.analyze();
+    //
+    // }
+    // printf("\n按回车键退出...");
+    // while (getchar() != '\n');
+    // getchar();
+    return 0;
 }
 
 // int main()
@@ -101,6 +139,6 @@ int main(){
 //                 << ", " << setw(4) << t.second << ")" << endl;
 //         }
 //     }
-//     // system("pause");
+//     system("pause");
 //     return 0;
 // }

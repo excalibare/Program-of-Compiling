@@ -1,0 +1,83 @@
+表达式 → 项 表达式'
+表达式' → + 项 { val = val1 + val2 } 表达式'
+         | - 项 { val = val1 - val2 } 表达式'
+         | ε   { val = val1 }
+
+
+项 → 因子 项'
+项' → * 因子 { val = val1 * val2 } 项'
+     | / 因子 { val = val1 / val2 } 项'
+     | ε      { val = val1 }
+
+
+因子 → ( 表达式 )   { val = 表达式.val }
+     | number        { val = number.val }
+     | ident         { val = 查符号表(ident) }
+
+
+
+
+
+
+
+
+
+
+
+
+1. E  → Sign T E_tail   // 表达式
+2. E  → T E_tail
+
+3. Sign → +             // 可选符号
+4. Sign → -
+5. Sign → ε             // 空，表示无符号
+
+6. E_tail → + T E_tail  // 表达式尾部（处理加减递归）
+7. E_tail → - T E_tail
+8. E_tail → ε
+
+9. T  → F T_tail        // 项
+10. T_tail → * F T_tail  // 项尾部（处理乘除递归）
+11. T_tail → / F T_tail
+12. T_tail → ε
+
+13. F → id               // 因子
+14. F → num
+15. F → ( E )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+S → .E
+E  → .Sign T E_tail   // 表达式
+E  → .T E_tail
+Sign → +             // 可选符号
+Sign → -
+Sign → ε             // 空，表示无符号
+T  → .F T_tail        // 项
+F → .id               // 因子
+F → .num
+F → .( E )
+
+//E
+S → E.
+
+//Sign
+E  → Sign .T E_tail
+T  → .F T_tail
+F → .id               // 因子
+F → .num
+F → .( E )
+。。。。。。。。。
